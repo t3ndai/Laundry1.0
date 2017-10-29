@@ -1,0 +1,21 @@
+{
+  "name": "laundry1.0",
+  "version": "1.0.0",
+  "description": "laundry management app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "laundry"
+  ],
+  "author": "Dzonga Prince Tendai",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^1.0.3",
+    "dotenv": "^4.0.0",
+    "express": "^4.16.2",
+    "express-validator": "^4.2.1",
+    "pg": "^7.3.0"
+  }
+}
