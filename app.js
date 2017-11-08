@@ -55,6 +55,7 @@ const checkShopExists = "SELECT email , shop_id, password FROM shops " +
 
 const createCustomersTable  = "CREATE TABLE IF NOT EXISTS customers (" +
                              " customer_id UUID PRIMARY KEY DEFAULT uuid_generate_v1mc(), " + 
+                             " name VARCHAR(50) NOT NULL, " +
                              " shop_id UUID REFERENCES shops, " + 
                              " phone VARCHAR(12) NOT NULL, " + 
                              " email VARCHAR(50) NOT NULL, " + 
@@ -84,6 +85,7 @@ const createApplication = (async function() {
         await pool.query(createShopsTable)
         await pool.query(UUID)
         await pool.query(createCustomersTable)
+
     } catch (err) {
         console.log(err)
     }
@@ -127,17 +129,17 @@ app.route('/shops')
 
             async function passwordHash() {
 
-                const new_hash = await bcrypt.hash(laundromat.password, 10)
+                const new_hash = await bcrypt.hash(shop.password, 10)
                 return new_hash
 
             }
             
             const save = (async function() {
                     try {
-                        let newShop = await pool.query(saveShop, [laundromat.name, laundromat.address, laundromat.email, laundromat.phone, await passwordHash() ])
-                        shop_id = newLaundromat.rows[0].shop_id 
+                        let newShop = await pool.query(saveShop, [shop.name, shop.address, shop.email, shop.phone, await passwordHash() ])
+                        shop_id = newShop.rows[0].shop_id 
                         const token = await jwt.sign({
-                                data: laundromat.email + shop_id
+                                data: shop.email + shop_id
                             }, 'fresh', { expiresIn : '24h' })
                         res.json({ "shop_id": shop_id, "token": token })
                         res.end()
@@ -241,21 +243,22 @@ app.route('/customers')
 
         } else {
 
-            const customer = Customer(req.body.name, req.body.shop_id, req.body.phone, req.body.email, req.body.address )
+            const customer = new Customer(req.body.name, req.body.shop_id, req.body.phone, req.body.email, req.body.address )
 
             const save = (async function () {
 
                     try {
 
                         newCustomer = await pool.query(saveCustomer, [customer.name, customer.shop_id, customer.phone, customer.email, customer.address ])
-                        customer_id = newCustomer.rows[0].shop_id
-                        res.json( { 'shop_id' : shop_id })
+                        customer_id = newCustomer.rows[0].customer_id
+                        res.json( { 'customer_id' : customer_id  })
                         res.end()
 
                     }catch (err) {
 
                         console.log(err)
                         res.json( { 'error' : err })
+                        res.end()
 
                     }
                 
@@ -266,10 +269,6 @@ app.route('/customers')
     })
 
 
-
-
-
-//NEXT: Create Customers Table 
 //NEXT: Create  --/ Update  --/ Delete Customer -- indicates after receipts 
 //NEXT: Create Receipts Table 
 //NEXt: Create a Receipt 
