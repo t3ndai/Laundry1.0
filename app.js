@@ -3,21 +3,30 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const { Pool } = require('pg')
 const { check, validationResult } = require('express-validator/check')
-const { matchedData } = require('express-validator/filter')
+const { matchedData, sanitize } = require('express-validator/filter')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 const redis = require('redis')
-const redisClient = redis.createClient()
+let redisClient
 const { promisify } = require('util')
 const AWS = require('aws-sdk')
 const mailjet = require('node-mailjet').connect('c8b05b409eeb40b3d697f6e209fdd1c8', 'd050e921dfa823f8f869f49b24e7003b')
 
-require('dotenv').load()
+// require('dotenv').load()
 
 AWS.config.loadFromPath('./awsconfig.json')
 
-const ses = new AWS.SES()
+const connectToServices = (async() => {
+  try {
+    redisClient = redis.createClient()
+    redisClient.on('connect', () => console.log('redis connected'))
+    redisClient.on('error', (err) => { console.log(err) })
+  } catch (err) {
+    console.log(err)
+  }
+})()
+
 const charset = 'UTF-8'
 
 app.use(bodyParser.json())
@@ -47,6 +56,14 @@ function Receipt (shop_id, customer_id, amount, receipt_date, description) {
   this.description = description
 }
 
+(async () => {
+  try {
+    await promisify(redisClient.on).bind(redisClient)
+  } catch (err) {
+    console.log(err)
+  }
+})()
+
 const UUID = 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'
 
 const createShopsTable =
@@ -59,7 +76,7 @@ const createShopsTable =
     ' );'
 
 const saveShop =
-    'INSERT INTO shops(shop_id, name, address, email, phone, password) VALUES (DEFAULT, $1,$2,$3,$4,$5) ' +
+    'INSERT INTO shops(shop_id, name, address, email, phone ) VALUES (DEFAULT, $1,$2,$3,$4) ' +
     ' RETURNING shop_id; '
 
 const checkShopExists =
@@ -103,9 +120,9 @@ const pool = new Pool({
 
 const createApplication = (async function () {
   try {
-    // await pool.query(createShopsTable)
+    await pool.query(createShopsTable)
     await pool.query(UUID)
-    // await pool.query(createCustomersTable)
+    await pool.query(createCustomersTable)
     // await pool.query(createReceiptsTable)
   } catch (err) {
     console.log(err)
@@ -117,20 +134,21 @@ app
 
     .all(
   [
-    check('name', 'Invalid name')
+    check('shop.name', 'Invalid name')
                 .exists()
                 .isLength({ min: 1 }),
-    check('address', 'Invalid address')
+    check('shop.address', 'Invalid address')
                 .exists()
                 .isLength({ min: 5 }),
-    check('email', 'Invalid email').isEmail(),
-    check('phone', 'Invalid phone #')
+    check('shop.email', 'Invalid email').isEmail(),
+    check('shop.phone', 'Invalid phone #')
+                .trim()
                 .isLength({ min: 10, max: 12 })
-                .isNumeric()
-            /* check('password', 'Invalid').exists() */
+                // .isNumeric()
+                // .trim(),
   ],
 
-        function (req, res, next) {
+        (req, res, next) => {
           next()
         }
     )
@@ -139,14 +157,15 @@ app
       const errors = validationResult(req)
 
       if (!errors.isEmpty()) {
+        console.log(errors.mapped())
         res.status(422).json({ errors: errors.mapped() })
         res.end()
       } else {
         const shop = new Shop(
-                req.body.name,
-                req.body.address,
-                req.body.email,
-                req.body.phone
+                req.body.shop.name,
+                req.body.shop.address,
+                req.body.shop.email,
+                req.body.shop.phone
             )
 
             /* async function passwordHash() {
@@ -165,17 +184,11 @@ app
               shop.phone
             ])
             shop_id = newShop.rows[0].shop_id
-            const token = await jwt.sign(
-              {
-                data: shop.email + shop_id
-              },
-                        'fresh',
-                        { expiresIn: '24h' }
-                    )
-            res.json({ shop_id: shop_id, token: token })
+            res.json({ shop_id: shop_id })
             res.end()
           } catch (err) {
             console.log(err)
+
             res.json({ error: err })
           }
         })()
@@ -186,9 +199,9 @@ app.post(
     '/login',
   [
     check('email', 'Invalid email')
-            .exists()
-            .isEmail()
-        // check("password", "Invalid").exists()
+          .exists()
+          .isEmail()
+         // check("password", "Invalid").exists()
   ],
     (req, res, next) => {
       const errors = validationResult(req)
@@ -204,7 +217,7 @@ app.post(
 
             const set = promisify(redisClient.set).bind(redisClient)
 
-            const storeToken = (async function () {
+            const storeToken = (async () => {
               try {
                 const storeToken = await set(
                                 token,
@@ -219,28 +232,7 @@ app.post(
 
             // NEXT: Send token to email
 
-            const sendToken = (async function () {
-              const emailParams = {
-                Source: 'pdzonga@mail.usf.edu',
-                Destination: {
-                  ToAddresses: [email]
-
-                },
-                Message: {
-                  Subject: {
-                    Data: 'Your login token'
-                    // Charset: charset
-
-                  },
-                  Body: {
-                    Html: {
-                      Data: token
-                    }
-                  }
-                }
-
-              }
-
+            const sendToken = (async () => {
               let emailData = {
                 'FromEmail': 'dzonga@dollartranscript.xyz',
                 'FromName': 'Dzonga Prince',
@@ -267,9 +259,9 @@ app.post(
     }
 )
 
-app.post('/authenticate', [
+app.post('/auth', [
   check('token', 'Invalid token')
-        .exists()
+        // .exists()
         .isLength({min: 5})
 
 ], (req, res, next) => {
@@ -279,15 +271,41 @@ app.post('/authenticate', [
     console.log('errors:', errors)
   } else {
     let token = req.body.token
-    const exists = promisify(redisClient.exists).bind(redisClient)
+    let email = ''
 
-    const checkToken = (async function () {
+    const exists = promisify(redisClient.exists).bind(redisClient)
+    const getValue = promisify(redisClient.get).bind(redisClient)
+
+    /* const checkToken = (async () => {
       try {
         if (await exists(token) == 0) {
           res.json({'error': 'token expired'})
+        } else {
+          return email = await getValue(token)
+          console.log(email)
+          // res.json({'message': 'logged In', 'email': email })
         }
       } catch (err) {
         console.log('error:', err)
+      }
+    })() */
+
+    // email = await getValue(token)
+
+    const returnShop = (async () => {
+      try {
+        email = await getValue(token)
+
+        let potentialShop = await pool.query(checkShopExists, [email])
+        let shop = potentialShop.rows[0]
+        if (shop) {
+          res.status(201).json({'shop': shop })
+        } else {
+          throw new Error('no shop found')
+        }
+      } catch (err) {
+        console.log(err)
+        res.status(501).json({ 'error': 'we could not find the shop'})
       }
     })()
   }
@@ -303,7 +321,6 @@ app
                 .isLength({ min: 1 }),
     check('phone', 'Invalid phone #')
                 .exists()
-                .isNumeric()
                 .isLength({ min: 5, max: 12 }),
     check('email', 'Invalid email').isEmail(),
     check('shop_id', 'Invalid shop_id')
@@ -323,6 +340,7 @@ app
       const errors = validationResult(req)
 
       if (!errors.isEmpty()) {
+        console.log(req.body)
         res.status(422).json({ errors: errors.mapped() })
       } else {
         const customer = new Customer(
@@ -343,11 +361,11 @@ app
               customer.address
             ])
             customer_id = newCustomer.rows[0].customer_id
-            res.json({ customer_id: customer_id })
+            res.status(201).json({ customer_id: customer_id })
             res.end()
           } catch (err) {
             console.log(err)
-            res.json({ error: err })
+            res.status(502).json({ error: err })
             res.end()
           }
         })()
@@ -412,8 +430,6 @@ app
         })()
       }
     })
-
-// Destructuring  ES6
 
 async function generateAuthToken () {
   return await crypto
