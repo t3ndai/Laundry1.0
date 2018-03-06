@@ -1,6 +1,7 @@
 const app = require('express')()
 const bodyParser = require('body-parser')
 const cors = require('cors')
+const config = require('./config')
 const { Pool } = require('pg')
 const { check, validationResult } = require('express-validator/check')
 const { matchedData, sanitize } = require('express-validator/filter')
@@ -11,9 +12,14 @@ const redis = require('redis')
 let redisClient
 const { promisify } = require('util')
 const AWS = require('aws-sdk')
-const mailjet = require('node-mailjet').connect('c8b05b409eeb40b3d697f6e209fdd1c8', 'd050e921dfa823f8f869f49b24e7003b')
+const mailjet = require('node-mailjet').connect(config.mailjet_client || 'c8b05b409eeb40b3d697f6e209fdd1c8', config.mailjet_secret || 'd050e921dfa823f8f869f49b24e7003b')
+const clientSessions = require('client-sessions')
+const sql = require('./sql')
+
 
 // require('dotenv').load()
+
+console.log(config.mailjet_client)
 
 AWS.config.loadFromPath('./awsconfig.json')
 
@@ -30,7 +36,15 @@ const connectToServices = (async() => {
 const charset = 'UTF-8'
 
 app.use(bodyParser.json())
-app.use(cors())
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:8080'],
+  credentials: true
+}))
+app.use(clientSessions({
+  cookieName: 'authenticated',
+  secret: '6aac4e2a1ab67ff',
+  duration: 24 * 360 * 1000
+}))
 
 function Shop (name, address, email, phone, password) {
   this.name = name
@@ -96,19 +110,16 @@ const saveCustomer =
     'INSERT INTO customers(customer_id, name, shop_id, phone, email, address ) VALUES (DEFAULT, $1, $2, $3, $4, $5) ' +
     ' RETURNING customer_id; '
 
-const createReceiptsTable =
-    'CREATE TABLE IF NOT EXISTS receipts (' +
-    ' receipt_id serial PRIMARY KEY, ' +
-    ' shop_id UUID REFERENCES shops, ' +
-    ' customer_id UUID REFERENCES customers, ' +
-    ' amount money NOT NULL,' +
-    ' receipt_date timestamp NOT NULL, ' +
-    ' description TEXT ' +
-    ' );'
+
 
 const saveReceipt =
     'INSERT INTO receipts(shop_id, customer_id, amount, receipt_date, description ) VALUES ($1, $2, $3, $4, $5) ' +
     ' RETURNING receipt_id; '
+
+const getCustomers =
+   'SELECT * ' +
+   'FROM customers ' +
+   'WHERE shop_id = $1;'
 
 const pool = new Pool({
   user: 'Dzonga',
@@ -123,7 +134,7 @@ const createApplication = (async function () {
     await pool.query(createShopsTable)
     await pool.query(UUID)
     await pool.query(createCustomersTable)
-    // await pool.query(createReceiptsTable)
+    await pool.query(sql.createReceiptsTable)
   } catch (err) {
     console.log(err)
   }
@@ -299,9 +310,11 @@ app.post('/auth', [
         let potentialShop = await pool.query(checkShopExists, [email])
         let shop = potentialShop.rows[0]
         if (shop) {
+          req.authenticated.shop_id = shop.shop_id
+          console.log(req.authenticated.shop_id)
           res.status(201).json({'shop': shop })
-        } else {
-          throw new Error('no shop found')
+        } else if (potentialShop.rows.length === 0) {
+          res.status(201).json({'message': 'new shop'})
         }
       } catch (err) {
         console.log(err)
@@ -337,6 +350,8 @@ app
     )
 
     .post((req, res, next) => {
+      console.log(req.authenticated.shop_id)
+
       const errors = validationResult(req)
 
       if (!errors.isEmpty()) {
@@ -372,63 +387,65 @@ app
       }
     })
 
+    .get((req, res, next) => {
+      let shop_id = req.authenticated.shop_id
+
+      console.log(shop_id)
+
+      const query = (async() => {
+        try {
+          let dbResponse = await pool.query(getCustomers, [shop_id])
+
+          let shops = dbResponse.rows
+
+          res.status(200).json(shops)
+        } catch (err) {
+          console.log(err)
+          res.status(502).json({'errors': err })
+        }
+      })()
+    })
+
 app
     .route('/receipts')
 
     .all(
-  [
-    check('shop_id', 'Invalid shop_id')
-                .exists()
-                .isUUID(),
-    check('customer_id', 'Invalid customer_id')
-                .exists()
-                .isUUID(),
-    check('amount', 'Invalid amount')
-                .exists()
-                .isFloat(),
-    check('receipt_date', 'Invalid date')
-                .exists()
-                .toDate(),
-    check('description', 'Invalid description').exists()
-  ],
+
         (req, res, next) => {
           next()
         }
     )
 
     .post((req, res, next) => {
-      const errors = validationResult(req)
 
-      if (!errors.isEmpty()) {
-        res.status(422).json({ errors: errors.mapped() })
-      } else {
-        const receipt = new Receipt(
-                req.body.shop_id,
-                req.body.customer_id,
-                req.body.amount,
-                req.body.receipt_date,
-                req.body.description
-            )
+      let receipt = req.body
+		
+	  console.log(receipt)
+      receipt.shop_id = req.authenticated.shop_id
+	  receipt._id = Date.now()
+		
+	  const save = (async () => {
+	  		
+		  try {
+			  
+			  let dbResponse = await pool.query(sql.saveReceipt, [receipt])
+			  
+			  let receipts = dbResponse.rows
+			  
+		  	
+			  res.status(201).json(receipts)
+			  
+		  }catch (err) {
+		  	
+			
+			console.log(err)
+			  res.status(501).json({'error' : 'we could not fulfull your request'})
+		  }
+		
+	  })()
+      
+      
 
-        const save = (async function () {
-          try {
-            new_receipt = await pool.query(saveReceipt, [
-              receipt.shop_id,
-              receipt.customer_id,
-              receipt.amount,
-              receipt.receipt_date,
-              receipt.description
-            ])
-            receipt_id = new_receipt.rows[0].receipt_id
-            res.json({ receipt_id: receipt_id })
-            res.end()
-          } catch (err) {
-            console.log(err)
-            res.json({ error: err })
-            res.end()
-          }
-        })()
-      }
     })
 
 async function generateAuthToken () {
