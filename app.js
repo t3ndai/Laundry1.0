@@ -15,6 +15,7 @@ const AWS = require('aws-sdk')
 const mailjet = require('node-mailjet').connect(config.mailjet_client || 'c8b05b409eeb40b3d697f6e209fdd1c8', config.mailjet_secret || 'd050e921dfa823f8f869f49b24e7003b')
 const clientSessions = require('client-sessions')
 const sql = require('./sql')
+const receiptEmail = require('./receipt')
 
 
 // require('dotenv').load()
@@ -419,8 +420,6 @@ app
     .post((req, res, next) => {
 
       let receipt = req.body
-		
-	  console.log(receipt)
       receipt.shop_id = req.authenticated.shop_id
 	  receipt._id = Date.now()
 		
@@ -432,12 +431,26 @@ app
 			  
 			  let receipts = dbResponse.rows
 			  
-		  	
-			  res.status(201).json(receipts)
+			  const sendReceipt = (async() => {
+			  	
+				  try {
+					  
+					  let sendMail = mailjet.post('send')
+					  let mailResponse = sendMail.request(receiptEmail.emailData)
+					  
+					  res.status(201).json({'message' : 'invoice sent'})
+	
+				  	
+				  } catch (err) {
+				  	console.log(err)
+					res.status(501).json({'error': 'we could not send email'})
+				  }
+			  })()
+			  
+			  //res.status(201).json(receipts)
 			  
 		  }catch (err) {
-		  	
-			
+		  		
 			console.log(err)
 			  res.status(501).json({'error' : 'we could not fulfull your request'})
 		  }
