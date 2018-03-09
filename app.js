@@ -20,8 +20,6 @@ const receiptEmail = require('./receipt')
 
 // require('dotenv').load()
 
-console.log(config.mailjet_client)
-
 AWS.config.loadFromPath('./awsconfig.json')
 
 const connectToServices = (async() => {
@@ -460,6 +458,28 @@ app
       
 
     })
+	
+	.get((req, res, next) => {
+		
+		let shop_id = req.authenticated.shop_id
+		
+		const allReceipts = ( async () => {
+			
+			try {
+			
+				let dbResponse = await pool.query(sql.getReceipts, [shop_id])
+			
+				let receipts = dbResponse.rows
+			
+				res.status(201).json(receipts)
+				
+			} catch (err) {
+				console.log(err)
+				res.status(501).json({'error' : 'could not get receipts'})
+			}
+			
+		})()
+	})
 
 async function generateAuthToken () {
   return await crypto
