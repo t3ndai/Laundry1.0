@@ -139,6 +139,25 @@ const createApplication = (async function () {
   }
 })()
 
+
+function requireAuth(req, res, next) {
+	
+	if ( req.authenticated.shop_id != null) {
+		next()
+	}
+	else if ( req.authenticated.shop_id == null ) {
+		res.status(403)
+			.json({'error': 'session expired'})
+			.end()
+		
+	}
+	
+}
+
+app.all('/customers', requireAuth)
+app.all('/receipts', requireAuth)
+
+
 app
     .route('/shops')
 
@@ -388,8 +407,6 @@ app
 
     .get((req, res, next) => {
       let shop_id = req.authenticated.shop_id
-
-      console.log(shop_id)
 
       const query = (async() => {
         try {
