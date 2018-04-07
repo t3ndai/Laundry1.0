@@ -36,9 +36,18 @@ const charset = 'UTF-8'
 
 app.use(bodyParser.json())
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:8080'],
+  origin: ['http://localhost:3000', 'http://127.0.0.1:8080', 'http://localhost:8080'],
   credentials: true
 }))
+
+/*app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'http://127.0.0.1:8080')
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
+  res.header('Access-Control-Allow-Credentials', true)
+  res.header('Access-Control-Allow-Methods', 'OPTIONS, POST, GET, PATCH')
+  next()
+})*/
+
 app.use(clientSessions({
   cookieName: 'authenticated',
   secret: '6aac4e2a1ab67ff',
@@ -134,6 +143,7 @@ const createApplication = (async function () {
     await pool.query(UUID)
     await pool.query(createCustomersTable)
     await pool.query(sql.createReceiptsTable)
+    sql.prepareDB
   } catch (err) {
     console.log(err)
   }
@@ -146,7 +156,7 @@ function requireAuth(req, res, next) {
 		next()
 	}
 	else if ( req.authenticated.shop_id == null ) {
-		res.status(403)
+		res.status(401)
 			.json({'error': 'session expired'})
 			.end()
 		
@@ -187,7 +197,7 @@ app
 
       if (!errors.isEmpty()) {
         console.log(errors.mapped())
-        res.status(422).json({ errors: errors.mapped() })
+        res.status(400).json({ errors: errors.mapped() })
         res.end()
       } else {
         const shop = new Shop(
@@ -233,9 +243,10 @@ app.post(
          // check("password", "Invalid").exists()
   ],
     (req, res, next) => {
+      console.log(req.body)
       const errors = validationResult(req)
       if (!errors.isEmpty()) {
-        return res.status(422).json({ errors: errors.mapped() })
+        return res.status(400).json({ errors: errors.mapped() })
       } else {
         const login = (async function () {
           let email = req.body.email
@@ -296,7 +307,7 @@ app.post('/auth', [
 ], (req, res, next) => {
   const errors = validationResult(req)
   if (!errors.isEmpty()) {
-    res.json({'errors': errors})
+    res.status(400).json({'errors': errors})
     console.log('errors:', errors)
   } else {
     let token = req.body.token
@@ -374,7 +385,7 @@ app
 
       if (!errors.isEmpty()) {
         console.log(req.body)
-        res.status(422).json({ errors: errors.mapped() })
+        res.status(400).json({ errors: errors.mapped() })
       } else {
         const customer = new Customer(
                 req.body.name,
@@ -398,7 +409,7 @@ app
             res.end()
           } catch (err) {
             console.log(err)
-            res.status(502).json({ error: err })
+            res.status(501).json({ error: err })
             res.end()
           }
         })()
@@ -483,8 +494,14 @@ app
 		const allReceipts = ( async () => {
 			
 			try {
+        
+        let query = {
+          text : sql.getReceipts,
+          values : [shop_id],
+          //rowMode : 'array'
+        }
 			
-				let dbResponse = await pool.query(sql.getReceipts, [shop_id])
+				let dbResponse = await pool.query(query) //(sql.getReceipts, [shop_id], rowMode: 'array')
 			
 				let receipts = dbResponse.rows
 			

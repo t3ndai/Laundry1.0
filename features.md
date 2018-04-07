@@ -3,6 +3,7 @@
 * Edit receipt
 * ~~notify client on session expired~~ 
 * send actual invoice data 
+check for token existence 
 
 
 ##Purpose 
