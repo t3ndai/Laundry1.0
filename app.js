@@ -51,31 +51,37 @@ app.use(cors({
 app.use(clientSessions({
   cookieName: 'authenticated',
   secret: '6aac4e2a1ab67ff',
-  duration: 24 * 360 * 1000
+  duration: 24 * 3600 * 1000
 }))
 
-function Shop (name, address, email, phone, password) {
-  this.name = name
-  this.address = address
-  this.email = email
-  this.phone = phone
-    // this.password = password
+//Models
+
+function Shop (name, address, phone) {
+  return {
+    'name' : name,
+    'phone' : phone, 
+    'address' : address,
+  }
 }
 
 function Customer (name, shop_id, phone, email, address) {
-  this.name = name
-  this.shop_id = shop_id
-  this.phone = phone
-  this.email = email
-  this.address = address
+  return {
+    'name' : name,
+    'shop_id' : shop_id,
+    'phone' : phone,
+    'email' : email,
+    'address' : address,
+  }
 }
 
 function Receipt (shop_id, customer_id, amount, receipt_date, description) {
-  this.shop_id = shop_id
-  this.customer_id = customer_id
-  this.amount = amount
-  this.receipt_date = receipt_date
-  this.description = description
+  return {
+    'shop_id' : shop_id,
+    'customer_id' : customer_id,
+    'amount' : amount,
+    'receipt_date' : receipt_date,
+    'description' : description,
+  } 
 }
 
 (async () => {
@@ -143,7 +149,7 @@ const createApplication = (async function () {
     await pool.query(UUID)
     await pool.query(createCustomersTable)
     await pool.query(sql.createReceiptsTable)
-    sql.prepareDB
+    sql.prepareDB()
   } catch (err) {
     console.log(err)
   }
@@ -173,14 +179,14 @@ app
 
     .all(
   [
-    check('shop.name', 'Invalid name')
+    check('name', 'Invalid name')
                 .exists()
                 .isLength({ min: 1 }),
-    check('shop.address', 'Invalid address')
+    check('address', 'Invalid address')
                 .exists()
                 .isLength({ min: 5 }),
-    check('shop.email', 'Invalid email').isEmail(),
-    check('shop.phone', 'Invalid phone #')
+    //check('shop.email', 'Invalid email').isEmail(),
+    check('phone', 'Invalid phone #')
                 .trim()
                 .isLength({ min: 10, max: 12 })
                 // .isNumeric()
@@ -201,34 +207,39 @@ app
         res.end()
       } else {
         const shop = new Shop(
-                req.body.shop.name,
-                req.body.shop.address,
-                req.body.shop.email,
-                req.body.shop.phone
+                req.body.name,
+                req.body.address,
+                //req.body.shop.email,
+                req.body.phone
             )
-
-            /* async function passwordHash() {
-
-                const new_hash = await bcrypt.hash(shop.password, 10)
-                return new_hash
-
-            } */
+            
+        console.log(shop)
+        const email = req.authenticated.email 
+        let shop_id = Date.now()
+        console.log(shop_id)
 
         const save = (async function () {
           try {
-            let newShop = await pool.query(saveShop, [
+            /*let newShop = await pool.query(saveShop, [
               shop.name,
               shop.address,
               shop.email,
               shop.phone
             ])
-            shop_id = newShop.rows[0].shop_id
-            res.json({ shop_id: shop_id })
-            res.end()
+            shop_id = newShop.rows[0].shop_id*/
+            
+            const saveShop = sql.saveShop(shop_id, shop.name, shop.phone, email, shop.address)
+            
+            if (saveShop === 'ok') {
+              req.authenticated.shop_id = shop_id
+              res.status(201).json({'message': 'ok'})
+            }
+            //res.json({ shop_id: shop_id })
+            //res.end()
           } catch (err) {
             console.log(err)
 
-            res.json({ error: err })
+            res.status(501).json({ error: err })
           }
         })()
       }
@@ -285,6 +296,7 @@ app.post(
               try {
                 let sendMail = mailjet.post('send')
                 let response = await sendMail.request(emailData)
+                req.authenticated.email = email
                 res.status(200).json({'message': 'OK'})
               } catch (err) {
                 console.log(err)
@@ -312,31 +324,34 @@ app.post('/auth', [
   } else {
     let token = req.body.token
     let email = ''
+    
+    console.log(req.authenticated.email, 'email cookie')
 
     const exists = promisify(redisClient.exists).bind(redisClient)
     const getValue = promisify(redisClient.get).bind(redisClient)
 
-    /* const checkToken = (async () => {
+    const checkToken = (async () => {
       try {
         if (await exists(token) == 0) {
-          res.json({'error': 'token expired'})
+          res.status(400).json({'error': 'token expired'})
         } else {
-          return email = await getValue(token)
+          //return email = await getValue(token)
+          await returnShop(token)
           console.log(email)
           // res.json({'message': 'logged In', 'email': email })
         }
       } catch (err) {
         console.log('error:', err)
       }
-    })() */
+    })() 
 
     // email = await getValue(token)
 
-    const returnShop = (async () => {
+    const returnShop = (async (token) => {
       try {
         email = await getValue(token)
 
-        let potentialShop = await pool.query(checkShopExists, [email])
+        /*let potentialShop = await pool.query(checkShopExists, [email])
         let shop = potentialShop.rows[0]
         if (shop) {
           req.authenticated.shop_id = shop.shop_id
@@ -344,12 +359,23 @@ app.post('/auth', [
           res.status(201).json({'shop': shop })
         } else if (potentialShop.rows.length === 0) {
           res.status(201).json({'message': 'new shop'})
+        }*/
+        
+        let shop_id = sql.checkShopExists(email)
+        
+        if (shop_id === '') {
+          res.status(201).json({'message' : 'new shop'})
+        }else {
+          req.authenticated.shop_id = shop_id
+          res.status(201).json({'shop_id' : 'shop_id'})
         }
+          
+          
       } catch (err) {
         console.log(err)
         res.status(501).json({ 'error': 'we could not find the shop'})
       }
-    })()
+    })
   }
 })
 
@@ -522,7 +548,7 @@ async function generateAuthToken () {
         .slice(0, 5)
 }
 
-// Authorization Headers validation (JWT) on /customers -- not sure if I still need to do this ?
+// Authorization Headers validation (JWT) on /customers -- not sure if I still need to do  ?
 // NEXT: Update  --/ Delete Customer -- indicates after receipts
 // NEXT: Email a receipt
 // NEXt: Send a email notification
