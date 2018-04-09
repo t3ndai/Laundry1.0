@@ -54,10 +54,20 @@ const saveShop = (shop_id, name, phone, email, address) => {
 }
   
   
-const saveCustomer = () => {
+const saveCustomer = (customer_id, shop_id, name, phone, email, address ) => {
   
-  const query = `INSERT INTO customers(customer_id, shop_id, name, phone, email, address) VALUES ()`
-    
+  const query = `INSERT INTO 
+    customers(customer_id, shop_id, name, phone, email, address) 
+    VALUES (@customer_id, @shop_id, @name, @phone, @email, @address)`
+  
+  let dbResponse = db.prepare(query)
+                     .run({customer_id : customer_id, shop_id : shop_id, name : name, phone : phone, email : email, address : address })
+ 
+  if ( dbResponse.changes === 1 ) {
+    return 'ok'
+  } else {
+    new Error(`couldn't save customer`)
+  }
 }
   
   
@@ -106,6 +116,7 @@ module.exports = {
   prepareDB : prepareDB,
   checkShopExists : checkShopExists,
   saveShop : saveShop,
+  saveCustomer : saveCustomer,
 	saveReceipt : saveReceipt, 
 	createReceiptsTable : createReceiptsTable,
 	getReceipts : getReceipts

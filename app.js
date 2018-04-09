@@ -5,22 +5,14 @@ const config = require('./config')
 const { Pool } = require('pg')
 const { check, validationResult } = require('express-validator/check')
 const { matchedData, sanitize } = require('express-validator/filter')
-const bcrypt = require('bcrypt')
-const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 const redis = require('redis')
 let redisClient
 const { promisify } = require('util')
-const AWS = require('aws-sdk')
 const mailjet = require('node-mailjet').connect(config.mailjet_client || 'c8b05b409eeb40b3d697f6e209fdd1c8', config.mailjet_secret || 'd050e921dfa823f8f869f49b24e7003b')
 const clientSessions = require('client-sessions')
 const sql = require('./sql')
 const receiptEmail = require('./receipt')
-
-
-// require('dotenv').load()
-
-AWS.config.loadFromPath('./awsconfig.json')
 
 const connectToServices = (async() => {
   try {
@@ -92,43 +84,6 @@ function Receipt (shop_id, customer_id, amount, receipt_date, description) {
   }
 })()
 
-const UUID = 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'
-
-const createShopsTable =
-    'CREATE TABLE IF NOT EXISTS shops (' +
-    ' shop_id   UUID PRIMARY KEY DEFAULT uuid_generate_v1mc(),' +
-    ' name TEXT NOT NULL,' +
-    ' address TEXT NOT NULL,' +
-    ' email TEXT NOT NULL,' +
-    ' phone VARCHAR(12) NOT NULL' +
-    ' );'
-
-const saveShop =
-    'INSERT INTO shops(shop_id, name, address, email, phone ) VALUES (DEFAULT, $1,$2,$3,$4) ' +
-    ' RETURNING shop_id; '
-
-const checkShopExists =
-    'SELECT email , shop_id FROM shops ' + 'WHERE email = $1 ;'
-
-const createCustomersTable =
-    'CREATE TABLE IF NOT EXISTS customers (' +
-    ' customer_id UUID PRIMARY KEY DEFAULT uuid_generate_v1mc(), ' +
-    ' name VARCHAR(50) NOT NULL, ' +
-    ' shop_id UUID REFERENCES shops, ' +
-    ' phone VARCHAR(12) NOT NULL, ' +
-    ' email VARCHAR(50) NOT NULL, ' +
-    ' address VARCHAR(50) NOT NULL ' +
-    ' );'
-
-const saveCustomer =
-    'INSERT INTO customers(customer_id, name, shop_id, phone, email, address ) VALUES (DEFAULT, $1, $2, $3, $4, $5) ' +
-    ' RETURNING customer_id; '
-
-
-
-const saveReceipt =
-    'INSERT INTO receipts(shop_id, customer_id, amount, receipt_date, description ) VALUES ($1, $2, $3, $4, $5) ' +
-    ' RETURNING receipt_id; '
 
 const getCustomers =
    'SELECT * ' +
@@ -145,10 +100,7 @@ const pool = new Pool({
 
 const createApplication = (async function () {
   try {
-    await pool.query(createShopsTable)
-    await pool.query(UUID)
-    await pool.query(createCustomersTable)
-    await pool.query(sql.createReceiptsTable)
+
     sql.prepareDB()
   } catch (err) {
     console.log(err)
@@ -189,8 +141,7 @@ app
     check('phone', 'Invalid phone #')
                 .trim()
                 .isLength({ min: 10, max: 12 })
-                // .isNumeric()
-                // .trim(),
+               
   ],
 
         (req, res, next) => {
@@ -220,13 +171,6 @@ app
 
         const save = (async function () {
           try {
-            /*let newShop = await pool.query(saveShop, [
-              shop.name,
-              shop.address,
-              shop.email,
-              shop.phone
-            ])
-            shop_id = newShop.rows[0].shop_id*/
             
             const saveShop = sql.saveShop(shop_id, shop.name, shop.phone, email, shop.address)
             
@@ -234,8 +178,7 @@ app
               req.authenticated.shop_id = shop_id
               res.status(201).json({'message': 'ok'})
             }
-            //res.json({ shop_id: shop_id })
-            //res.end()
+
           } catch (err) {
             console.log(err)
 
@@ -389,14 +332,14 @@ app
                 .isLength({ min: 1 }),
     check('phone', 'Invalid phone #')
                 .exists()
-                .isLength({ min: 5, max: 12 }),
+                .isLength({ min: 10, max: 12 }),
     check('email', 'Invalid email').isEmail(),
-    check('shop_id', 'Invalid shop_id')
+    /*check('shop_id', 'Invalid shop_id')
                 .exists()
                 .isLength({ min: 10 }),
     check('address', 'Invalid address')
                 .exists()
-                .isLength({ min: 5 })
+                .isLength({ min: 5 })*/
   ],
 
         (req, res, next) => {
@@ -415,7 +358,7 @@ app
       } else {
         const customer = new Customer(
                 req.body.name,
-                req.body.shop_id,
+                //req.body.shop_id,
                 req.body.phone,
                 req.body.email,
                 req.body.address
@@ -423,16 +366,26 @@ app
 
         const save = (async function () {
           try {
-            newCustomer = await pool.query(saveCustomer, [
+            /*newCustomer = await pool.query(saveCustomer, [
               customer.name,
               customer.shop_id,
               customer.phone,
               customer.email,
               customer.address
             ])
-            customer_id = newCustomer.rows[0].customer_id
-            res.status(201).json({ customer_id: customer_id })
-            res.end()
+            customer_id = newCustomer.rows[0].customer_id */
+              
+            let customer_id = Date.now()
+            let shop_id = req.authenticated.shop_id
+              
+            let saveCustomer = sql.saveCustomer(customer_id, shop_id, customer.name, customer.phone, customer.email, customer.address)
+              
+              if (saveCustomer === 'ok') {
+                res.status(201).json({'message' : 'ok' })
+              }
+              
+            //res.status(201).json({ customer_id: customer_id })
+            //res.end()
           } catch (err) {
             console.log(err)
             res.status(501).json({ error: err })
