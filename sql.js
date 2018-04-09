@@ -4,8 +4,6 @@ db.pragma(`foreign_keys = ON`)
 
 //create tables
 
-
-
 const createShopsTable = 
   `CREATE TABLE IF NOT EXISTS shops(
      shop_id INTEGER PRIMARY KEY UNIQUE NOT NULL,
@@ -90,10 +88,18 @@ const checkShopExists = (email) => {
                  
 
 }
-    
 
-
-
+const getCustomers = (shop_id) => {
+  
+  const query = `SELECT name, email, phone, address
+                 FROM customers
+                 WHERE shop_id = @shop_id`
+  
+  let dbResponse = db.prepare(query).all({shop_id : shop_id })
+  
+  return (dbResponse === []) ? [] : dbResponse
+  
+}
 
 const saveReceipt = `INSERT INTO receipts (receipt) VALUES ($1) 
 					RETURNING *;`
@@ -117,6 +123,7 @@ module.exports = {
   checkShopExists : checkShopExists,
   saveShop : saveShop,
   saveCustomer : saveCustomer,
+  getCustomers : getCustomers,
 	saveReceipt : saveReceipt, 
 	createReceiptsTable : createReceiptsTable,
 	getReceipts : getReceipts

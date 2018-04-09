@@ -400,9 +400,9 @@ app
 
       const query = (async() => {
         try {
-          let dbResponse = await pool.query(getCustomers, [shop_id])
+          //let dbResponse = await pool.query(getCustomers, [shop_id])
 
-          let shops = dbResponse.rows
+          let shops = sql.getCustomers(shop_id)
 
           res.status(200).json(shops)
         } catch (err) {
