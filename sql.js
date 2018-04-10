@@ -83,6 +83,7 @@ const checkShopExists = (email) => {
     //console.log(dbResponse)
     return ''
   } else {
+    console.log(dbResponse)
     return dbResponse
   }
                  
@@ -91,7 +92,7 @@ const checkShopExists = (email) => {
 
 const getCustomers = (shop_id) => {
   
-  const query = `SELECT name, email, phone, address
+  const query = `SELECT customer_id, name, email, phone, address
                  FROM customers
                  WHERE shop_id = @shop_id`
   

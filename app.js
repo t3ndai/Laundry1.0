@@ -56,10 +56,9 @@ function Shop (name, address, phone) {
   }
 }
 
-function Customer (name, shop_id, phone, email, address) {
+function Customer (name, phone, email, address) {
   return {
     'name' : name,
-    'shop_id' : shop_id,
     'phone' : phone,
     'email' : email,
     'address' : address,
@@ -84,11 +83,6 @@ function Receipt (shop_id, customer_id, amount, receipt_date, description) {
   }
 })()
 
-
-const getCustomers =
-   'SELECT * ' +
-   'FROM customers ' +
-   'WHERE shop_id = $1;'
 
 const pool = new Pool({
   user: 'Dzonga',
@@ -293,23 +287,13 @@ app.post('/auth', [
     const returnShop = (async (token) => {
       try {
         email = await getValue(token)
-
-        /*let potentialShop = await pool.query(checkShopExists, [email])
-        let shop = potentialShop.rows[0]
-        if (shop) {
-          req.authenticated.shop_id = shop.shop_id
-          console.log(req.authenticated.shop_id)
-          res.status(201).json({'shop': shop })
-        } else if (potentialShop.rows.length === 0) {
-          res.status(201).json({'message': 'new shop'})
-        }*/
         
-        let shop_id = sql.checkShopExists(email)
+        let shop = sql.checkShopExists(email)
         
-        if (shop_id === '') {
+        if (shop === '') {
           res.status(201).json({'message' : 'new shop'})
         }else {
-          req.authenticated.shop_id = shop_id
+          req.authenticated.shop_id = shop.shop_id
           res.status(201).json({'shop_id' : 'shop_id'})
         }
           
@@ -358,7 +342,6 @@ app
       } else {
         const customer = new Customer(
                 req.body.name,
-                //req.body.shop_id,
                 req.body.phone,
                 req.body.email,
                 req.body.address
@@ -366,26 +349,17 @@ app
 
         const save = (async function () {
           try {
-            /*newCustomer = await pool.query(saveCustomer, [
-              customer.name,
-              customer.shop_id,
-              customer.phone,
-              customer.email,
-              customer.address
-            ])
-            customer_id = newCustomer.rows[0].customer_id */
-              
+                    
             let customer_id = Date.now()
             let shop_id = req.authenticated.shop_id
-              
+            
+            
             let saveCustomer = sql.saveCustomer(customer_id, shop_id, customer.name, customer.phone, customer.email, customer.address)
               
               if (saveCustomer === 'ok') {
                 res.status(201).json({'message' : 'ok' })
               }
-              
-            //res.status(201).json({ customer_id: customer_id })
-            //res.end()
+  
           } catch (err) {
             console.log(err)
             res.status(501).json({ error: err })
@@ -396,12 +370,14 @@ app
     })
 
     .get((req, res, next) => {
+      
       let shop_id = req.authenticated.shop_id
+      
+      console.log(shop_id)
 
       const query = (async() => {
         try {
-          //let dbResponse = await pool.query(getCustomers, [shop_id])
-
+        
           let shops = sql.getCustomers(shop_id)
 
           res.status(200).json(shops)

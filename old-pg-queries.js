@@ -40,3 +40,20 @@ const saveCustomer =
 const saveReceipt =
     'INSERT INTO receipts(shop_id, customer_id, amount, receipt_date, description ) VALUES ($1, $2, $3, $4, $5) ' +
     ' RETURNING receipt_id; '
+
+/*let potentialShop = await pool.query(checkShopExists, [email])
+let shop = potentialShop.rows[0]
+if (shop) {
+  req.authenticated.shop_id = shop.shop_id
+  console.log(req.authenticated.shop_id)
+  res.status(201).json({'shop': shop })
+} else if (potentialShop.rows.length === 0) {
+  res.status(201).json({'message': 'new shop'})
+}*/
+
+
+
+const getCustomers =
+   'SELECT * ' +
+   'FROM customers ' +
+   'WHERE shop_id = $1;'
