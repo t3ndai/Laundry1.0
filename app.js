@@ -401,18 +401,24 @@ app
     .post((req, res, next) => {
 
       let receipt = req.body
-      receipt.shop_id = req.authenticated.shop_id
-	  receipt._id = Date.now()
+      let shop_id = req.authenticated.shop_id
+	    let receipt_id = Date.now()
+      let customer_id = receipt.customer.customer_id
+      let total = receipt.total
 		
+
+    
 	  const save = (async () => {
 	  		
 		  try {
 			  
-			  let dbResponse = await pool.query(sql.saveReceipt, [receipt])
-			  
-			  let receipts = dbResponse.rows
-			  
-			  const sendReceipt = (async() => {
+        let savedReceipt = sql.saveReceipt(receipt_id, shop_id, total, JSON.stringify(receipt), customer_id)
+      
+        if (savedReceipt === 'ok') {
+          res.status(201).json({'message': 'ok'})
+        } 
+
+			  /*const sendReceipt = (async() => {
 			  	
 				  try {
 					  
@@ -424,16 +430,16 @@ app
 				  	
 				  } catch (err) {
 				  	console.log(err)
-					res.status(501).json({'error': 'we could not send email'})
+					  res.status(501).json({'error': 'we could not send email'})
 				  }
-			  })()
+			  })*/
 			  
-			  //res.status(201).json(receipts)
+			  
 			  
 		  }catch (err) {
-		  		
-			console.log(err)
-			  res.status(501).json({'error' : 'we could not fulfull your request'})
+		  		res.status(501).json({'error' : 'we could not fulfull your request'})
+			    console.log(err)
+			  
 		  }
 		
 	  })()

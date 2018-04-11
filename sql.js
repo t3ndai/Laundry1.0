@@ -26,12 +26,33 @@ const createCustomersTable =
      FOREIGN KEY(shop_id) REFERENCES shops ON DELETE CASCADE
   );`
   
-  const prepareDB = () => {
+  
+const createReceiptsTable = 
+  `CREATE TABLE IF NOT EXISTS receipts(
+      receipt_id INTEGER PRIMARY KEY NOT NULL,
+      shop_id INTEGER NOT NULL,
+      total REAL NOT NULL,
+      details JSON NOT NULL,
+      date_created DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      FOREIGN KEY(shop_id) REFERENCES shops ON DELETE CASCADE
+  );`
+    
+const createCustomerReceiptsTable = 
+  `CREATE TABLE IF NOT EXISTS customer_receipts(
+      customer_id REFERENCES customers,
+      receipt_id REFERENCES receipts,
+      PRIMARY KEY (customer_id, receipt_id)
+  );`   
+  
+  
+
+const prepareDB = () => {
     db.pragma(`foreign_keys = ON`)
     console.log(db.pragma(`foreign_keys`, true))
     db.prepare(createShopsTable).run()
     db.prepare(createCustomersTable).run()
-    
+    db.prepare(createReceiptsTable).run()
+    db.prepare(createCustomerReceiptsTable).run()
     
   }
 
@@ -64,8 +85,41 @@ const saveCustomer = (customer_id, shop_id, name, phone, email, address ) => {
   if ( dbResponse.changes === 1 ) {
     return 'ok'
   } else {
-    new Error(`couldn't save customer`)
+    throw new Error(`couldn't save customer`)
   }
+}
+
+const saveReceipt = (receipt_id, shop_id, total, details, customer_id) => {
+  
+  const query = `INSERT INTO
+        receipts(receipt_id, shop_id, total, details)
+        VALUES(@receipt_id, @shop_id, @total, @details)`
+  
+  const bridge_query = `INSERT INTO customer_receipts(customer_id, receipt_id)
+                       VALUES(@customer_id, @receipt_id)`
+  
+  
+  
+  
+
+    
+  let dbResponse = db.transaction([query, bridge_query])
+                       .run({
+                         receipt_id : receipt_id, 
+                         shop_id : shop_id,
+                         total : total,
+                         details : details,
+                         customer_id : customer_id
+                       })
+                       
+    console.log(dbResponse.changes)
+
+    if (dbResponse.changes === 2) {
+      return 'ok'
+    }else {
+      throw new Error(`couldn't save receipt'`)
+    }
+      
 }
   
   
@@ -102,14 +156,6 @@ const getCustomers = (shop_id) => {
   
 }
 
-const saveReceipt = `INSERT INTO receipts (receipt) VALUES ($1) 
-					RETURNING *;`
-
-const createReceiptsTable =
-    `CREATE TABLE IF NOT EXISTS receipts (
-    receipt jsonb
-    );`
-	
 	
 const getReceipts = `SELECT * 
 					FROM receipts 
