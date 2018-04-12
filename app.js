@@ -418,7 +418,7 @@ app
           res.status(201).json({'message': 'ok'})
         } 
 
-			  /*const sendReceipt = (async() => {
+			  const sendReceipt = (async() => {
 			  	
 				  try {
 					  
@@ -432,8 +432,7 @@ app
 				  	console.log(err)
 					  res.status(501).json({'error': 'we could not send email'})
 				  }
-			  })*/
-			  
+			  })
 			  
 			  
 		  }catch (err) {
@@ -456,7 +455,7 @@ app
 			
 			try {
         
-        let query = {
+        /*let query = {
           text : sql.getReceipts,
           values : [shop_id],
           //rowMode : 'array'
@@ -464,8 +463,10 @@ app
 			
 				let dbResponse = await pool.query(query) //(sql.getReceipts, [shop_id], rowMode: 'array')
 			
-				let receipts = dbResponse.rows
-			
+				let receipts = dbResponse.rows*/
+          
+        let receipts = sql.getReceipts(shop_id)
+        
 				res.status(201).json(receipts)
 				
 			} catch (err) {

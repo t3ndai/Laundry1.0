@@ -51,6 +51,9 @@ if (shop) {
   res.status(201).json({'message': 'new shop'})
 }*/
 
+ `SELECT * 
+					FROM receipts 
+					WHERE receipt::jsonb ->> 'shop_id' = $1;`
 
 
 const getCustomers =

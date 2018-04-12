@@ -157,10 +157,19 @@ const getCustomers = (shop_id) => {
 }
 
 	
-const getReceipts = `SELECT * 
-					FROM receipts 
-					WHERE receipt::jsonb ->> 'shop_id' = $1;`
+const getReceipts = (shop_id) => {
+ 
+   const query = `SELECT receipt_id, total, date_created, details
+                  FROM receipts
+                  WHERE shop_id = @shop_id`
+  
+  let dbResponse = db.prepare(query).all({ shop_id : shop_id }) 
+  
+  return (dbResponse === []) ? [] : dbResponse
 	
+  
+}
+ 
 //calculate total revenues to date, belonging to shop 
 
 const dayRevenues = ``
@@ -172,7 +181,6 @@ module.exports = {
   saveCustomer : saveCustomer,
   getCustomers : getCustomers,
 	saveReceipt : saveReceipt, 
-	createReceiptsTable : createReceiptsTable,
 	getReceipts : getReceipts
 	
 }
