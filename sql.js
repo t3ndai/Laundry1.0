@@ -48,7 +48,7 @@ const createCustomerReceiptsTable =
 
 const prepareDB = () => {
     db.pragma(`foreign_keys = ON`)
-    console.log(db.pragma(`foreign_keys`, true))
+    //console.log(db.pragma(`foreign_keys`, true))
     db.prepare(createShopsTable).run()
     db.prepare(createCustomersTable).run()
     db.prepare(createReceiptsTable).run()
@@ -159,7 +159,7 @@ const getCustomers = (shop_id) => {
 	
 const getReceipts = (shop_id) => {
  
-   const query = `SELECT receipt_id, total, date_created, details
+   const query = `SELECT receipt_id, total, date(date_created) as date_created, details
                   FROM receipts
                   WHERE shop_id = @shop_id`
   
@@ -167,6 +167,26 @@ const getReceipts = (shop_id) => {
   
   return (dbResponse === []) ? [] : dbResponse
 	
+  
+}
+
+const updateReceipt = (receipt_id, details) => {
+  
+  const query = `UPDATE receipts
+                 SET details = @details 
+                 WHERE receipt_id = @receipt_id`
+  
+  
+  let dbResponse = db.prepare(query)
+                     .run({ receipt_id : receipt_id,
+                            details : details
+                      })
+                      
+  if (dbResponse.changes === 1) {
+    return 'ok'
+  }else {
+    throw new Error(`couldn't update receipt`)
+  }
   
 }
  
@@ -181,6 +201,7 @@ module.exports = {
   saveCustomer : saveCustomer,
   getCustomers : getCustomers,
 	saveReceipt : saveReceipt, 
-	getReceipts : getReceipts
+	getReceipts : getReceipts,
+  updateReceipt : updateReceipt,
 	
 }

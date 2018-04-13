@@ -476,6 +476,33 @@ app
 			
 		})()
 	})
+  
+  .patch((req, res, next) => {
+    
+    const save = (() => {
+      
+      try {
+        
+        //console.log(req.body)
+        let receipt_id = req.body.receipt_id
+        let details = req.body.details
+        
+        let updatedReceipt = sql.updateReceipt(receipt_id, details)
+        
+        if (updatedReceipt === 'ok') {
+          res.status(201).json({'message' : 'ok'})
+        }
+        
+        //res.status(201).json({'message' : 'ok'})
+        
+      }catch(err) {
+        console.log(err)
+        res.status(501).json({'error' : 'could not get receipts'})
+      }
+      
+    })()
+    
+  })
 
 async function generateAuthToken () {
   return await crypto
