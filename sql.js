@@ -192,7 +192,17 @@ const updateReceipt = (receipt_id, details) => {
  
 //calculate total revenues to date, belonging to shop 
 
-const dayRevenues = ``
+const dayRevenues = (shop_id) => {
+  
+  const query = `SELECT sum(total) AS revenue
+                 FROM receipts 
+                 WHERE date(date_created) = date('now') AND shop_id =@shop_id`
+  
+  let dbResponse = db.prepare(query).get({ shop_id : shop_id })
+  
+  return (dbResponse.revenue === null) ? '' : dbResponse
+
+}
 
 module.exports = {
   prepareDB : prepareDB,
@@ -203,5 +213,6 @@ module.exports = {
 	saveReceipt : saveReceipt, 
 	getReceipts : getReceipts,
   updateReceipt : updateReceipt,
+  dayRevenues : dayRevenues,
 	
 }
