@@ -518,23 +518,10 @@ app
   const allReceipts = (async() => {
 
     try {
-
-      if (req.query.customer_id) {
-        
-          let customer_id = parseInt(req.query.customer_id)
- 
-          let receipts = sql.customerReceipts(customer_id)
-        
-          res.status(201).json(receipts)
-          
-      }else {
         
         let receipts = sql.getReceipts(shop_id)
 
         res.status(201).json(receipts)
-        
-      }
-
     
     } catch (err) {
       console.log(err)
@@ -601,6 +588,31 @@ app.get('/revenue', requireAuth, (req, res, next) => {
   
 })
 
+
+app.route('/customer_receipts')
+
+  .all((req, res, next) => {
+    
+    next()
+  })
+  
+  .get((req, res, next) => {
+    
+    let customer_id = parseInt(req.query.customer_id)
+    
+    try {
+      
+      let receipts = sql.customerReceipts(customer_id)
+      
+      res.status(201).json(receipts)
+      
+    }catch(err) {
+      console.log(err)
+      res.status(501).status({ 'error' : 'could not get customer receipts' })
+      
+    }
+    
+  })
 
 async function generateAuthToken() {
   return await crypto
