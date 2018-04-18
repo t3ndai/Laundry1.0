@@ -98,11 +98,6 @@ const saveReceipt = (receipt_id, shop_id, total, details, customer_id) => {
   const bridge_query = `INSERT INTO customer_receipts(customer_id, receipt_id)
                        VALUES(@customer_id, @receipt_id)`
   
-  
-  
-  
-
-    
   let dbResponse = db.transaction([query, bridge_query])
                        .run({
                          receipt_id : receipt_id, 
@@ -133,13 +128,15 @@ const checkShopExists = (email) => {
   
   let dbResponse = db.prepare(query).get({email: email})
                  
-  if (dbResponse === undefined) {
+  /*if (dbResponse === undefined) {
     //console.log(dbResponse)
     return ''
   } else {
     console.log(dbResponse)
     return dbResponse
-  }
+  }*/
+  
+  return (dbResponse === undefined ) ? '' : dbResponse
                  
 
 }
@@ -204,6 +201,20 @@ const dayRevenues = (shop_id) => {
 
 }
 
+const customerReceipts = (customer_id) => {
+  
+  const query = `SELECT date_created, receipt_id, total
+                 FROM receipts 
+                 NATURAL JOIN customer_receipts 
+                 WHERE customer_id = @customer_id`
+  
+  let dbResponse = db.prepare(query).all({ customer_id : customer_id })
+  
+  
+  return (dbResponse === []) ? [] : dbResponse
+  
+}
+
 module.exports = {
   prepareDB : prepareDB,
   checkShopExists : checkShopExists,
@@ -214,5 +225,6 @@ module.exports = {
 	getReceipts : getReceipts,
   updateReceipt : updateReceipt,
   dayRevenues : dayRevenues,
+  customerReceipts : customerReceipts,
 	
 }
