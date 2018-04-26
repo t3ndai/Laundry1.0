@@ -19,7 +19,6 @@ let redisClient
 const {
   promisify
 } = require('util')
-const mailjet = require('node-mailjet').connect(config.mailjet_client || 'c8b05b409eeb40b3d697f6e209fdd1c8', config.mailjet_secret || 'd050e921dfa823f8f869f49b24e7003b')
 const clientSessions = require('client-sessions')
 const sql = require('./sql')
 const receiptEmail = require('./receipt')
@@ -462,7 +461,7 @@ app
   let customer_id = receipt.customer.customer_id
   let total = receipt.total
 
-
+  //console.log(receiptEmail.htmlReceipt(receipt))
 
   const save = (async() => {
 
@@ -474,35 +473,16 @@ app
         res.status(201).json({
           'message': 'ok'
         })
+        
       }
-
-      const sendReceipt = (async() => {
-
-        try {
-
-          let sendMail = mailjet.post('send')
-          let mailResponse = sendMail.request(receiptEmail.emailData)
-
-          res.status(201).json({
-            'message': 'invoice sent'
-          })
-
-
-        } catch (err) {
-          console.log(err)
-          res.status(501).json({
-            'error': 'we could not send email'
-          })
-        }
-      })
-
+      
 
     } catch (err) {
+      console.log(err)
       res.status(501).json({
         'error': 'we could not fulfull your request'
       })
-      console.log(err)
-
+      
     }
 
   })()

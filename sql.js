@@ -128,17 +128,8 @@ const checkShopExists = (email) => {
   
   let dbResponse = db.prepare(query).get({email: email})
                  
-  /*if (dbResponse === undefined) {
-    //console.log(dbResponse)
-    return ''
-  } else {
-    console.log(dbResponse)
-    return dbResponse
-  }*/
-  
   return (dbResponse === undefined ) ? '' : dbResponse
                  
-
 }
 
 const getCustomers = (shop_id) => {
@@ -203,7 +194,7 @@ const dayRevenues = (shop_id) => {
 
 const customerReceipts = (customer_id) => {
   
-  const query = `SELECT date_created, receipt_id, total
+  const query = `SELECT date(date_created) as date_created, receipt_id, total
                  FROM receipts 
                  NATURAL JOIN customer_receipts 
                  WHERE customer_id = @customer_id`
@@ -216,6 +207,7 @@ const customerReceipts = (customer_id) => {
 }
 
 module.exports = {
+  
   prepareDB : prepareDB,
   checkShopExists : checkShopExists,
   saveShop : saveShop,
