@@ -8,7 +8,7 @@ function htmlReceipt (receipt) {
   
   return `<article>
 	
-	<h2> hi ${receipt.customer.name} </h2>
+	<h2> Hi ${receipt.customer.name} </h2>
 	
 	<h1> Thanks for your order, here are the details </h1>
 	
@@ -102,26 +102,20 @@ function htmlReceipt (receipt) {
   
 }
 
-const sendReceipt = (async() => {
+const sendReceipt = (htmlReceipt) => {
 
   try {
 
     let sendMail = mailjet.post('send')
-    let mailResponse = sendMail.request(receiptEmail.emailData)
+    let mailResponse = sendMail.request(emailData(htmlReceipt))
 
-    /*res.status(201).json({
-      'message': 'invoice sent'
-    })*/
     return 'ok'
-
 
   } catch (err) {
     console.log(err)
-    /*res.status(501).json({
-      'error': 'we could not send email'
-    })*/
+
   }
-})
+}
 	
 let emailData = (receipt) => {
  return {

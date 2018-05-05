@@ -22,6 +22,8 @@ const {
 const clientSessions = require('client-sessions')
 const sql = require('./sql')
 const receiptEmail = require('./receipt')
+const mailjet = require('node-mailjet').connect(config.mailjet_client || 'c8b05b409eeb40b3d697f6e209fdd1c8', config.mailjet_secret || 'd050e921dfa823f8f869f49b24e7003b')
+
 
 const connectToServices = (async() => {
   try {
@@ -470,13 +472,20 @@ app
       let savedReceipt = sql.saveReceipt(receipt_id, shop_id, total, JSON.stringify(receipt), customer_id)
 
       if (savedReceipt === 'ok') {
-        res.status(201).json({
-          'message': 'ok'
-        })
+        
+        let htmlReceipt = receiptEmail.htmlReceipt(receipt)
+        let emailedReceipt = receiptEmail.sendReceipt(htmlReceipt)
+        
+        if (emailedReceipt === 'ok') {
+          
+          res.status(201).json({
+            'message': 'ok'
+          })
+          
+        }
         
       }
-      
-
+    
     } catch (err) {
       console.log(err)
       res.status(501).json({
