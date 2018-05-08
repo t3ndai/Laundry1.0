@@ -41,7 +41,7 @@ const charset = 'UTF-8'
 
 app.use(bodyParser.json())
 app.use(cors({
-  origin: ['http://127.0.0.1:8080', 'http://localhost:8080', 'https://dollartranscript.xyz'],
+  origin: ['http://127.0.0.1:8080', 'http://localhost:8080', 'https://api.dollartranscript.xyz'],
   credentials: true
 }))
 
