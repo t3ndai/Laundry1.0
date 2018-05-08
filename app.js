@@ -54,7 +54,7 @@ app.use(bodyParser.json())
 }))*/
 
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', domain_whitelist)
+  res.header('Access-Control-Allow-Origin', 'https://dollartranscript.xyz')
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
   res.header('Access-Control-Allow-Credentials', true)
   res.header('Access-Control-Allow-Methods', 'OPTIONS, POST, GET, PATCH')
