@@ -42,7 +42,7 @@ const charset = 'UTF-8'
 const domain_whitelist = ['http://127.0.0.1:8080', 'http://localhost:8080', 'https://api.dollartranscript.xyz', 'https://dollartranscript.xyz']
  
 app.use(bodyParser.json())
-/*app.use(cors({
+app.use(cors({
   origin : function (origin, callback) {
     if (whitelist.indexOf(origin) !== -1){
       callback(null, true)
@@ -51,15 +51,15 @@ app.use(bodyParser.json())
     }
   },
   credentials: true
-}))*/
+}))
 
-app.use((req, res, next) => {
+/*app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', 'https://dollartranscript.xyz')
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
   res.header('Access-Control-Allow-Credentials', true)
   res.header('Access-Control-Allow-Methods', 'OPTIONS, POST, GET, PATCH')
   next()
-})
+})*/
 
 app.use(clientSessions({
   cookieName: 'authenticated',
