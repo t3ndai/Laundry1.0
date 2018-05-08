@@ -41,7 +41,7 @@ const charset = 'UTF-8'
 
 app.use(bodyParser.json())
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:8080', 'http://localhost:8080'],
+  origin: ['http://127.0.0.1:8080', 'http://localhost:8080', 'https://dollartranscript.xyz'],
   credentials: true
 }))
 
@@ -615,6 +615,6 @@ async function generateAuthToken() {
 // NEXT: Email a receipt
 // NEXt: Send a email notification
 
-app.listen(3000, function() {
-  console.log('listening on port : 3000!')
+app.listen(8080, function() {
+  console.log('listening on port : 8080!')
 })

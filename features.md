@@ -1,9 +1,9 @@
 ##ToDo
 * ~~save shop~~ 
-* Edit receipt
+* ~~Edit receipt~~
 * ~~notify client on session expired~~ 
-* send actual invoice data 
-check for token existence 
+* ~~send actual invoice data~~ 
+* send to designated email
 
 
 ##Purpose 
