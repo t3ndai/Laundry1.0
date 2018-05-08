@@ -39,9 +39,17 @@ const connectToServices = (async() => {
 
 const charset = 'UTF-8'
 
+const domain_whitelist = ['http://127.0.0.1:8080', 'http://localhost:8080', 'https://api.dollartranscript.xyz', 'https://dollartranscript.xyz']
+ 
 app.use(bodyParser.json())
 app.use(cors({
-  origin: ['http://127.0.0.1:8080', 'http://localhost:8080', 'https://api.dollartranscript.xyz', 'https://dollartranscript.xyz'],
+  origin : function (origin, callback) {
+    if (whitelist.indexOf(origin) !== -1){
+      callback(null, true)
+    }else {
+      callback(new Error('not allowed by cors'))
+    }
+  },
   credentials: true
 }))
 
