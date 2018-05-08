@@ -44,7 +44,7 @@ const domain_whitelist = ['http://127.0.0.1:8080', 'http://localhost:8080', 'htt
 app.use(bodyParser.json())
 app.use(cors({
   origin : function (origin, callback) {
-    if (whitelist.indexOf(origin) !== -1){
+    if (domain_whitelist.indexOf(origin) !== -1){
       callback(null, true)
     }else {
       callback(new Error('not allowed by cors'))
