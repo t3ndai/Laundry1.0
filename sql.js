@@ -121,7 +121,7 @@ const saveReceipt = (receipt_id, shop_id, total, details, customer_id) => {
 
 const checkShopExists = (email) => {
   
-  const query = `SELECT shop_id 
+  const query = `SELECT shop_id, name, phone, email, address
                  FROM shops 
                  WHERE email = @email
   `

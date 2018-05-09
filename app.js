@@ -39,7 +39,7 @@ const connectToServices = (async() => {
 
 const charset = 'UTF-8'
 
-const domain_whitelist = ['http://127.0.0.1:8080', 'http://localhost:8080', 'https://api.dollartranscript.xyz', 'https://dollartranscript.xyz']
+const domain_whitelist = ['http://127.0.0.1:8080', 'http://localhost:8081', 'https://api.dollartranscript.xyz', 'https://dollartranscript.xyz']
  
 app.use(bodyParser.json())
 app.use(cors({
@@ -345,7 +345,10 @@ app.post('/auth', [
         } else {
           req.authenticated.shop_id = shop.shop_id
           res.status(201).json({
-            'shop_id': 'shop_id'
+            'name' : shop.name,
+            'phone' : shop.phone,
+            'email' : shop.email,
+            'address' : shop.address, 
           })
         }
 
@@ -469,6 +472,7 @@ app
   let shop_id = req.authenticated.shop_id
   let receipt_id = Date.now()
   let customer_id = receipt.customer.customer_id
+  let customer_email = receipt.customer.email
   let total = receipt.total
 
   //console.log(receiptEmail.htmlReceipt(receipt))
@@ -482,7 +486,7 @@ app
       if (savedReceipt === 'ok') {
         
         let htmlReceipt = receiptEmail.htmlReceipt(receipt)
-        let emailedReceipt = receiptEmail.sendReceipt(htmlReceipt)
+        let emailedReceipt = receiptEmail.sendReceipt(htmlReceipt, customer_email)
         
         if (emailedReceipt === 'ok') {
           

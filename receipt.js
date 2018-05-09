@@ -7,6 +7,25 @@ const mailjet = require('node-mailjet').connect(config.mailjet_client || 'c8b05b
 function htmlReceipt (receipt) {
   
   return `<article>
+  
+  <style>
+  
+    html {
+    
+      display : grid;
+      font-family : Verdana sans-serif;
+      font-weight : 500;
+      color : #383D3B;
+      line-height : 1.5;
+    
+    }
+    
+    .article-text {
+      font-size : 1.5rem;
+      color : #383D3B;
+    }
+    
+  </style>
 	
 	<h2> Hi ${receipt.customer.name} </h2>
 	
@@ -29,9 +48,9 @@ function htmlReceipt (receipt) {
   
         <tr rowspan='5'>
           
-          <tr> <td> Dzonga Shop </td></tr>
-          <tr> <td> ptdzonga@gmail.com </td></tr>
-          <tr> <td> 813 335 9871 </td></tr>
+          <tr> <td> ${receipt.shop.name} </td></tr>
+          <tr> <td> ${receipt.shop.email} </td></tr>
+          <tr> <td> ${receipt.shop.phone} </td></tr>
   
         </tr>
   
@@ -82,7 +101,9 @@ function htmlReceipt (receipt) {
         <tr>
       
           <th rowspan='2'> Total </th>
-          <th rowspan='2'>  ${ receipt.total }   </th>
+          <td rowspan='2' style=font-size : 1.5rem;
+                                 font-weight : 600;
+                                 color : #383D3B;> <h2> $${ receipt.total }<h2></td>
   
         </tr>
   
@@ -102,12 +123,12 @@ function htmlReceipt (receipt) {
   
 }
 
-const sendReceipt = (htmlReceipt) => {
+const sendReceipt = (htmlReceipt, email) => {
 
   try {
 
     let sendMail = mailjet.post('send')
-    let mailResponse = sendMail.request(emailData(htmlReceipt))
+    let mailResponse = sendMail.request(emailData(htmlReceipt, email))
 
     return 'ok'
 
@@ -117,14 +138,14 @@ const sendReceipt = (htmlReceipt) => {
   }
 }
 	
-let emailData = (receipt) => {
+let emailData = (receipt, email) => {
  return {
 	
                 'FromEmail': 'dzonga@dollartranscript.xyz',
                 'FromName': 'Dzonga Prince',
                 'Subject': 'Your Receipt',
                 'Html-part': receipt,
-                'Recipients': [{'Email': 'ptdzonga@gmail.com'}]
+                'Recipients': [{'Email': email }]
 	}
 }
 	
