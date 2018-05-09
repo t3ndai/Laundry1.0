@@ -141,8 +141,8 @@ const sendReceipt = (htmlReceipt, email) => {
 let emailData = (receipt, email) => {
  return {
 	
-                'FromEmail': 'dzonga@dollartranscript.xyz',
-                'FromName': 'Dzonga Prince',
+                'FromEmail': 'shops@dollartranscript.xyz',
+                'FromName': 'ShopsApp',
                 'Subject': 'Your Receipt',
                 'Html-part': receipt,
                 'Recipients': [{'Email': email }]
