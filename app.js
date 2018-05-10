@@ -138,6 +138,7 @@ function requireAuth(req, res, next) {
 
 }
 
+app.get('/', requireAuth)
 app.all('/customers', requireAuth)
 app.all('/receipts', requireAuth)
 
@@ -258,8 +259,8 @@ app.post(
 
           const sendToken = (async() => {
             let emailData = {
-              'FromEmail': 'dzonga@dollartranscript.xyz',
-              'FromName': 'Dzonga Prince',
+              'FromEmail': 'shops@dollartranscript.xyz',
+              'FromName': 'Shops App',
               'Subject': 'Your Token',
               'Text-part': token,
               'Recipients': [{
