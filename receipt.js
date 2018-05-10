@@ -142,7 +142,7 @@ let emailData = (receipt, email) => {
  return {
 	
                 'FromEmail': 'shops@dollartranscript.xyz',
-                'FromName': 'ShopsApp',
+                'FromName': 'ShopsApp', 
                 'Subject': 'Your Receipt',
                 'Html-part': receipt,
                 'Recipients': [{'Email': email }]

@@ -194,7 +194,7 @@ const dayRevenues = (shop_id) => {
 
 const customerReceipts = (customer_id) => {
   
-  const query = `SELECT date(date_created) as date_created, receipt_id, total
+  const query = `SELECT date(date_created) as date_created, receipt_id, total, json_extract(details, '$.details') as details
                  FROM receipts 
                  NATURAL JOIN customer_receipts 
                  WHERE customer_id = @customer_id`
