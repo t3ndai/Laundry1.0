@@ -23,6 +23,6 @@
     "node-mailjet": "^3.2.1",
     "passwordless": "^1.1.2",
     "pg": "^7.3.0",
-    "redis": "^2.8.0"
+    "redis": "^3.1.1"
   }
 }
